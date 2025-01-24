@@ -1,6 +1,6 @@
-Flask==2.3.2
+flask
 tensorflow==2.16.1
 numpy==1.25.2
 pillow==10.0.1
-gunicorn==20.1.1
-uvicorn==0.22.0
+pandas==2.1.1
+gunicorn==20.0.4
