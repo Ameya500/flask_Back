@@ -7,7 +7,7 @@ import os
 app = Flask(__name__)
 
 # Define the model path, relative to the script location
-model_path = os.path.join(os.path.dirname(__file__), 'models', 'saved_model.pb')  # Path to saved_model.pb
+model_path = os.path.join(os.path.dirname(__file__), 'models')  # Path to saved_model.pb
 model = tf.saved_model.load(model_path)  # Load model
 
 # Load class labels from labels.txt
