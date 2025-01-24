@@ -2,22 +2,21 @@ from flask import Flask, request, jsonify
 import tensorflow as tf
 import numpy as np
 from PIL import Image
-import io
 import os
 
 app = Flask(__name__)
 
-# Load the saved model (adjust path for deployment)
-model_path = os.path.join(os.getcwd(), 'models', 'saved_model.pb')  # Ensure the model path is correct
-model = tf.saved_model.load(model_path)  # Path to your saved model
+# Define the model path, relative to the script location
+model_path = os.path.join(os.path.dirname(__file__), 'models', 'saved_model.pb')  # Path to saved_model.pb
+model = tf.saved_model.load(model_path)  # Load model
 
-# Load class labels from labels.txt (ensure this file is correctly included in your project)
+# Load class labels from labels.txt
 def load_class_labels(labels_file):
     with open(labels_file, "r") as file:
         return [line.strip() for line in file.readlines()]
 
 # Preprocess the input image
-def preprocess_image(image, target_size):
+def preprocess_image(image, target_size=(224, 224)):  # Adjust target_size based on model's expected input size
     img = Image.open(image).convert('RGB')  # Ensure 3-channel RGB
     img = img.resize(target_size)  # Resize to the input size of the model
     img_array = np.array(img) / 255.0  # Normalize pixel values (0-1)
@@ -25,8 +24,7 @@ def preprocess_image(image, target_size):
 
 # Predict function
 def predict(image_path):
-    # Adjust the target size according to the model input signature (replace with your model's actual input size)
-    image_data = preprocess_image(image_path, model.input_signature[0].shape[1:3])  # Adjust to input shape
+    image_data = preprocess_image(image_path, target_size=(224, 224))  # Adjust size if needed
     predictions = model(image_data)
     predicted_index = np.argmax(predictions[0])  # Index of highest probability
     confidence = predictions[0][predicted_index]  # Confidence score
@@ -47,8 +45,8 @@ def predict_disease():
     predicted_index, confidence = predict(file)
 
     # Load class labels (ensure labels.txt is correctly included in your project)
-    labels_file = os.path.join(os.getcwd(), 'models', 'labels.txt')  # Ensure the labels file is correctly referenced
-    class_labels = load_class_labels(labels_file)  
+    labels_file = os.path.join(os.path.dirname(__file__), 'models', 'labels.txt')  # Path to labels.txt
+    class_labels = load_class_labels(labels_file)
     predicted_class = class_labels[predicted_index]
 
     # Send prediction result as JSON
@@ -61,4 +59,4 @@ def predict_disease():
 
 # Specify port and host for Render
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=os.getenv('PORT', 5000), debug=True)
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=True)
