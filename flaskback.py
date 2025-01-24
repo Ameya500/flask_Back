@@ -6,14 +6,20 @@ import os
 
 app = Flask(__name__)
 
-# Define the model path, relative to the script location
-model_path = os.path.join(os.path.dirname(__file__), 'models')  # Path to saved_model.pb
-model = tf.saved_model.load(model_path)  # Load model
+# Load the trained Keras model
+model_path = 'keras_model.h5'  # Path to your exported .h5 file
+model = tf.keras.models.load_model(model_path)
 
 # Load class labels from labels.txt
+labels_file_path = 'labels.txt'  # Path to labels.txt
+if not os.path.exists(labels_file_path):
+    raise FileNotFoundError(f"Labels file not found at {labels_file_path}")
+
 def load_class_labels(labels_file):
     with open(labels_file, "r") as file:
         return [line.strip() for line in file.readlines()]
+
+class_labels = load_class_labels(labels_file_path)  # Load labels into memory
 
 # Preprocess the input image
 def preprocess_image(image, target_size=(224, 224)):  # Adjust target_size based on model's expected input size
@@ -25,10 +31,11 @@ def preprocess_image(image, target_size=(224, 224)):  # Adjust target_size based
 # Predict function
 def predict(image_path):
     image_data = preprocess_image(image_path, target_size=(224, 224))  # Adjust size if needed
-    predictions = model(image_data)
+    predictions = model.predict(image_data)  # Use the loaded Keras model for prediction
     predicted_index = np.argmax(predictions[0])  # Index of highest probability
     confidence = predictions[0][predicted_index]  # Confidence score
-    return predicted_index, confidence
+    predicted_class = class_labels[predicted_index]  # Get class name from labels
+    return predicted_class, confidence
 
 @app.route('/predict', methods=['POST'])
 def predict_disease():
@@ -42,12 +49,7 @@ def predict_disease():
         return jsonify({"error": "No selected file"}), 400
 
     # Predict the class
-    predicted_index, confidence = predict(file)
-
-    # Load class labels (ensure labels.txt is correctly included in your project)
-    labels_file = os.path.join(os.path.dirname(__file__), 'models', 'labels.txt')  # Path to labels.txt
-    class_labels = load_class_labels(labels_file)
-    predicted_class = class_labels[predicted_index]
+    predicted_class, confidence = predict(file)
 
     # Send prediction result as JSON
     result = {
